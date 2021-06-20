@@ -1,2 +1,1 @@
-# Onitama-Equipo3
-Proyecto de Programación Funcional 2021
+# Proyecto del curso de Programación Funcional 2021 - Equipo3
