@@ -312,7 +312,11 @@ showGame (GameState player [c1,c2,c3,c4,c5] table) =
 showGameTest = showGame (beginning [Tiger, Crab, Monkey, Crane, Dragon])
 
 -- Convierte una acción a un texto que puede ser impreso en la consola para mostrarla.
--- showAction :: OnitamaAction -> String
+showAction :: OnitamaAction -> String
+showAction (Action piece card (x1,y1) (x2,y2)) = 
+    putStrLn "A la pieza: " ++ show piece ++ " , se le aplicará la acción: " ++ show card ++ 
+    ", en la posición: (" ++ show x1 ++ "," ++ show x2 ++ "). Esta pieza terminará en la posición: ("
+    ++ show x2 ++ "," ++ show y2 ++ ")"
 
 -- Obtiene una acción a partir de un texto que puede haber sido introducido por el usuario en la consola.
 -- readAction :: String -> OnitamaAction
