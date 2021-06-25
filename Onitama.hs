@@ -41,28 +41,6 @@ deck = [Tiger .. Cobra]
 activePlayer :: OnitamaGame -> Maybe OnitamaPlayer
 activePlayer g = listToMaybe [p | (p, as) <- actions g, not (null as)]
 
-{-
-beginning :: [OnitamaCard] -> OnitamaGame
-beginning _ = OnitamaGame False --TODO
-
-actions :: OnitamaGame -> [(OnitamaPlayer, [OnitamaAction])]
-actions (OnitamaGame f) = zip players [if f then [] else [OnitamaAction], []] --TODO
-
-next :: OnitamaGame -> OnitamaPlayer -> OnitamaAction -> OnitamaGame
-next _ _ _ = OnitamaGame True --TODO
-
-result :: OnitamaGame -> [GameResult OnitamaPlayer]
-result (OnitamaGame f) = if f then [] else [rf p | (rf, p) <- zip [Winner, Loser] players] --TODO
-
-showGame :: OnitamaGame -> String
-showGame g = show g --TODO
-
-showAction :: OnitamaAction -> String
-showAction a = show a --TODO
-   
-readAction :: String -> OnitamaAction
-readAction = read --TODO
--}
 {-- Match controller -------------------------------------------------------------------------------
 
 Código de prueba. Incluye una función para correr las partidas y dos agentes: consola y aleatorio.
