@@ -62,8 +62,10 @@ beginning cards = GameState RedPlayer (take 5 cards) initTable
 
 -- Recibe un estado del juego.
 -- Retorna el proximo jugador en mover.
--- activePlayer :: OnitamaGame -> OnitamaPlayer
--- activePlayer (GameState player cards table) = otherPlayer player
+-- activePlayer :: OnitamaGame -> Maybe OnitamaPlayer
+-- activePlayer (GameState player cards table)
+--    | endedGame table = Nothing
+--    | otherwise = Just (otherPlayer player)
 
 -- Recibe un jugador.
 -- Retorna el otro jugador.
@@ -139,9 +141,7 @@ owner piece = NoPlayer
 -- Recibe un jugador, un par de coordenadas y un tablero.
 -- Retorna si la pieza en esas coordenadas es enemiga.
 isEnemyPiece :: OnitamaPlayer -> Coordinate -> OnitamaTable -> Bool
-isEnemyPiece player (x,y) table  
-    | (table !! y !! x) == NoPiece = error ("No piece: " ++ show (table !! y !! x))
-    | otherwise = owner (table !! y !! x) == otherPlayer player
+isEnemyPiece player (x,y) table = owner (table !! y !! x) == otherPlayer player
 
 -- Recibe un jugador (dueño de la accion), una carta, una pieza sobre la que se ejecutara la accion,
 -- las coordenadas de dicha pieza y el tablero.
@@ -161,6 +161,7 @@ toActions player cards piece table coor
     | player == (owner piece) =  (concat [allPossibleResults player card piece table coor | card <- cards])
     | otherwise = []
 
+
 -- Toma un estado del juego.
 -- Retorna todos los posibles resultados de la aplicacion de todas las cartas sobre todo el tablero.
 possibleActions :: OnitamaGame -> [OnitamaAction]
@@ -170,40 +171,9 @@ possibleActions (GameState player cards table) = concat [(toActions player cards
 -- Retorna una lista de tuplas (player, posibles jugadas)
 -- Si no es el turno del jugador retorna la lista vacia.
 actions :: OnitamaGame -> [(OnitamaPlayer, [OnitamaAction])]
-actions (GameState player cards table) = [(player , possibleActions (GameState player (playerCards player cards) table)) , (otherPlayer player, [])]
-
-actionsTest1 = (actions (beginning [Tiger, Tiger, Tiger, Tiger, Tiger])) ==[(RedPlayer,[
-    Action (Apprentice RedPlayer) Tiger (0,0) (2,0),
-    Action (Apprentice RedPlayer) Tiger (0,0) (2,0),
-    Action (Apprentice RedPlayer) Tiger (0,1) (2,1),
-    Action (Apprentice RedPlayer) Tiger (0,1) (2,1),
-    Action (Master RedPlayer) Tiger (0,2) (2,2),
-    Action (Master RedPlayer) Tiger (0,2) (2,2),
-    Action (Apprentice RedPlayer) Tiger (0,3) (2,3),
-    Action (Apprentice RedPlayer) Tiger (0,3) (2,3),
-    Action (Apprentice RedPlayer) Tiger (0,4) (2,4),
-    Action (Apprentice RedPlayer) Tiger (0,4) (2,4)
-    ]),(BluePlayer,[])]
-
-actionsTest2 = (actions (GameState RedPlayer [Tiger,Tiger,Tiger,Tiger,Tiger] table)) == [(RedPlayer,[
-    Action (Apprentice RedPlayer) Tiger (0,0) (2,0),
-    Action (Apprentice RedPlayer) Tiger (0,0) (2,0),
-    Action (Apprentice RedPlayer) Tiger (0,1) (2,1),
-    Action (Apprentice RedPlayer) Tiger (0,1) (2,1),
-    Action (Master RedPlayer) Tiger (0,2) (2,2),
-    Action (Master RedPlayer) Tiger (0,2) (2,2),
-    Action (Apprentice RedPlayer) Tiger (0,3) (2,3),
-    Action (Apprentice RedPlayer) Tiger (0,3) (2,3),
-    Action (Apprentice RedPlayer) Tiger (0,4) (2,4),
-    Action (Apprentice RedPlayer) Tiger (0,4) (2,4)
-    ]),(BluePlayer,[])]
-    
-    where table = [
-            [Apprentice RedPlayer,    NoPiece,    Apprentice BluePlayer,    NoPiece,    NoPiece],
-            [Apprentice RedPlayer,    NoPiece,    Apprentice BluePlayer,    NoPiece,    NoPiece],
-            [Master RedPlayer,        NoPiece,    Master BluePlayer,        NoPiece,    NoPiece],
-            [Apprentice RedPlayer,    NoPiece,    Apprentice BluePlayer,    NoPiece,    NoPiece],
-            [Apprentice RedPlayer,    NoPiece,    Apprentice BluePlayer,    NoPiece,    NoPiece]]
+actions (GameState player cards table) 
+    | endedGame table = []
+    | otherwise = [(player , possibleActions (GameState player (playerCards player cards) table)) , (otherPlayer player, [])]
 
 -- Recibe un par de coordenadas y un tablero.
 -- Retorna la pieza en ese par de coordenadas, incluso cuando no hay ninguna.  
@@ -280,20 +250,9 @@ next (GameState player cards table ) playerMover (Action pieceToMove cardToMove 
     | ((pieceAt from table) /= pieceToMove) = error "Pieza incorrecta en el tablero."
     | (owner pieceToMove) /= playerMover = error "Esa pieza no es tuya."
     | (not (isEmpty to table || owner (pieceAt to table) == otherPlayer player)) = error "Destino ocupado."
-    | endedGame table = error ("El juego ha terminado." ++ show (GameState player cards table ))
+    | endedGame table = error ("El juego ha terminado.")
     | (not (isACardIn (handOf cards player) cardToMove)) = error "El jugador no posee esa carta."
     | otherwise = (GameState (otherPlayer player) (nextCards cards cardToMove) (doAction table (Action pieceToMove cardToMove from to)))
-
-nextTest = (next
-    (beginning [Tiger, Tiger, Tiger, Tiger, Tiger]) 
-    (RedPlayer) 
-    (Action (Master RedPlayer) Tiger (0,2) (2,2))) == 
-    (GameState BluePlayer [Tiger,Tiger,Tiger,Tiger,Tiger] [
-    [Apprentice RedPlayer,NoPiece,NoPiece,NoPiece,Apprentice BluePlayer],
-    [Apprentice RedPlayer,NoPiece,NoPiece,NoPiece,Apprentice BluePlayer],
-    [NoPiece,NoPiece,Master RedPlayer,NoPiece,Master BluePlayer],
-    [Apprentice RedPlayer,NoPiece,NoPiece,NoPiece,Apprentice BluePlayer],
-    [Apprentice RedPlayer,NoPiece,NoPiece,NoPiece,Apprentice BluePlayer]])
 
 -- Recibe el estado del juego.
 -- Retorna el resultado del juego para cada jugador.
@@ -317,6 +276,3 @@ showAction (Action piece card cor1 cor2) = show piece ++"\n"++ show card ++"\n"+
 -- Obtiene una acción a partir de un texto que puede haber sido introducido por el usuario en la consola.
 readAction :: String -> OnitamaAction
 readAction input = (read input)
-
-test = nextTest && actionsTest1 && actionsTest2
-
