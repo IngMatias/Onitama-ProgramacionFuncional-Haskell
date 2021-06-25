@@ -17,8 +17,8 @@ type OnitamaTable = [[OnitamaPiece]]
 type Coordinate = (Int,Int)
 
 -- Movimiento de una pieza.
--- La primera coordenada corresponde cuantos casilleros hacia adelante.
--- La segunda coordenada corresponde cuantos casilleros hacia la derecha.
+-- La primera coordenada corresponde cuantos casilleros hacia la derecha.
+-- La segunda coordenada corresponde cuantos casilleros hacia adelante.
 -- Ambas pueden ser negativas, mostrando casilleros hacia atras y hacia la izquierda.
 type Movement = (Int,Int)
 
@@ -154,7 +154,7 @@ allPossibleResults player card piece table coor =
 toActions :: OnitamaPlayer -> [OnitamaCard] -> OnitamaPiece -> OnitamaTable -> Coordinate -> [OnitamaAction]
 toActions _ _ NoPiece _ _ = []
 toActions player cards piece table coor
-    | player == (owner piece) =  (concat [allPossibleResults player card piece table coor  | card <- cards])
+    | player == (owner piece) =  (concat [allPossibleResults player card piece table coor | card <- cards])
     | otherwise = []
 
 -- Toma un estado del juego.
@@ -303,7 +303,7 @@ result (GameState player _ table)
 -- Retorna un texto representativo que puede ser impreso en la consola.
 showGame :: OnitamaGame -> String
 showGame (GameState player [c1,c2,c3,c4,c5] table) =
-    "El siguiente jugador en mover es el: " ++ (if (player == RedPlayer) then "Rojo" else "Azul.") ++ "\n" ++
+    putStrLn "El siguiente jugador en mover es el: " ++ (if (player == RedPlayer) then "Rojo" else "Azul.") ++ "\n" ++
     "Las cartas del jugador rojo son: " ++ show c1 ++ " y " ++ show c2 ++ "\n" ++
     "Las cartas del jugador azul son: " ++ show c3 ++ " y " ++ show c4 ++ "\n" ++
     "La carta en espera es: " ++ show c5 ++ "\n" ++
@@ -312,7 +312,11 @@ showGame (GameState player [c1,c2,c3,c4,c5] table) =
 showGameTest = showGame (beginning [Tiger, Crab, Monkey, Crane, Dragon])
 
 -- Convierte una acción a un texto que puede ser impreso en la consola para mostrarla.
--- showAction :: OnitamaAction -> String
+showAction :: OnitamaAction -> String
+showAction (Action piece card (x1,y1) (x2,y2)) = 
+    putStrLn "A la pieza: " ++ show piece ++ " , se le aplicará la acción: " ++ show card ++ 
+    ", en la posición: (" ++ show x1 ++ "," ++ show x2 ++ "). Esta pieza terminará en la posición: ("
+    ++ show x2 ++ "," ++ show y2 ++ ")"
 
 -- Obtiene una acción a partir de un texto que puede haber sido introducido por el usuario en la consola.
 -- readAction :: String -> OnitamaAction
