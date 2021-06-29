@@ -267,8 +267,6 @@ result (GameState player _ table)
 showGame :: OnitamaGame -> String
 showGame (GameState player card table) = show player ++"\n"++ show card ++"\n"++ show table
 
-showGameTest = showGame (beginning [Tiger, Crab, Monkey, Crane, Dragon])
-
 -- Convierte una acción a un texto que puede ser impreso en la consola para mostrarla.
 showAction :: OnitamaAction -> String
 showAction (Action piece card cor1 cor2) = show piece ++"\n"++ show card ++"\n"++ show cor1 ++"\n"++ show cor2
