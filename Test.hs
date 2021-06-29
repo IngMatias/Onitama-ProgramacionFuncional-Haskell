@@ -87,5 +87,11 @@ showActionTest = showAction (head (possibleActions (GameState RedPlayer [Tiger,G
 
 readActionTest = readAction "Action (Master BluePlayer) Tiger (0,0) (2,0)" == Action (Master BluePlayer) Tiger (0,0) (2,0)
 
+handOfTest = handOf [Dragon,Tiger,Fog,Rabbit,Boar] RedPlayer == [Dragon,Tiger] && handOf [Dragon,Tiger,Fog,Rabbit,Boar] BluePlayer == [Fog,Rabbit] 
+
+isACardInTest = isACardIn [Dragon,Tiger] Dragon == True && isACardIn [Dragon,Tiger] Tiger == True && isACardIn [Dragon,Tiger] Fog == False
+
+isMasterTest = if (isMaster (Master RedPlayer) == True && isMaster (Master BluePlayer) == True) then True else False 
+
 test = nextTest && actionsTest1 && actionsTest2 && otherPlayerTest && playerCardsTest && 
-    isEmptyTest && moveTest && ownerTest && isEnemyPieceTest && resultTest && showActionTest && readActionTest
+    isEmptyTest && moveTest && ownerTest && isEnemyPieceTest && resultTest && showActionTest && readActionTest && handOfTest && isACardInTest && isMasterTest
