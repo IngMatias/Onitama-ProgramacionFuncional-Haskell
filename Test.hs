@@ -1,6 +1,6 @@
 module Test where 
 
-import Juego
+import GameFunctions
 
 actionsTest1 = (actions (beginning [Tiger, Tiger, Tiger, Tiger, Tiger])) ==[(RedPlayer,[
     Action (Apprentice RedPlayer) Tiger (0,0) (2,0),
@@ -62,7 +62,7 @@ isEmptyTest = isEmpty (0,0) table == False && isEmpty (1,1) table == True
 
 moveTest = redMove (0,0) (1,1) == (1,1) && blueMove (3,4) (2,2) == (1,2)
 
-ownerTest = owner (Master RedPlayer) == RedPlayer && owner (Apprentice BluePlayer) == BluePlayer
+ownerTest = isOwnerOf RedPlayer (Master RedPlayer) && isOwnerOf BluePlayer (Apprentice BluePlayer)
 
 isEnemyPieceTest = isEnemyPiece RedPlayer (0,0) table == False && isEnemyPiece BluePlayer (0,0) table == True
 
@@ -87,9 +87,9 @@ showActionTest = showAction (head (possibleActions (GameState RedPlayer [Tiger,G
 
 readActionTest = readAction "Action (Master BluePlayer) Tiger (0,0) (2,0)" == Action (Master BluePlayer) Tiger (0,0) (2,0)
 
-handOfTest = handOf [Dragon,Tiger,Fog,Rabbit,Boar] RedPlayer == [Dragon,Tiger] && handOf [Dragon,Tiger,Fog,Rabbit,Boar] BluePlayer == [Fog,Rabbit] 
+handOfTest = handOf [Dragon,Tiger,Frog,Rabbit,Boar] RedPlayer == [Dragon,Tiger] && handOf [Dragon,Tiger,Frog,Rabbit,Boar] BluePlayer == [Frog,Rabbit] 
 
-isACardInTest = isACardIn [Dragon,Tiger] Dragon == True && isACardIn [Dragon,Tiger] Tiger == True && isACardIn [Dragon,Tiger] Fog == False
+isACardInTest = isACardIn [Dragon,Tiger] Dragon == True && isACardIn [Dragon,Tiger] Tiger == True && isACardIn [Dragon,Tiger] Frog == False
 
 isMasterTest = if (isMaster (Master RedPlayer) == True && isMaster (Master BluePlayer) == True) then True else False 
 
