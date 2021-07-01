@@ -1,5 +1,8 @@
 
-module Juego where
+module GameFunctions where
+
+import Data.Maybe
+
 -- Almacena la informacion del estado del juego en cualquier momento.
 -- El jugador es el siguiente en mover.
 -- Las dos primeras cartas corresponden al jugador rojo, 
@@ -8,6 +11,7 @@ data OnitamaGame = GameState OnitamaPlayer [OnitamaCard] OnitamaTable
     deriving (Eq, Show)
 
 -- Tablero.
+-- Es visto desde la perspectiva de un espectador, no desde los jugadores.
 type OnitamaTable = [[OnitamaPiece]]
 
 -- La primera coordenada corresponde a la columna, la segunda a la fila.
@@ -42,12 +46,20 @@ data OnitamaCard =
     deriving (Eq, Show, Enum, Read)
 
 -- Jugadores (Prof).
-data OnitamaPlayer = RedPlayer | BluePlayer | NoPlayer
+data OnitamaPlayer = RedPlayer | BluePlayer 
     deriving (Eq, Show, Enum, Read, Bounded)
 
 -- Posibles resultados de la partida (Prof).
 data GameResult p = Winner p | Loser p | Draw
     deriving (Eq, Show)
+
+-- Retorna el mazo de cartas inicial
+deck :: [OnitamaCard]
+deck = [Tiger .. Cobra]
+
+-- Retorna una lista con todos los jugadores
+players :: [OnitamaPlayer]
+players = [minBound..maxBound]
 
 -- Recibe las cartas ya barajadas.
 -- Retorna el estado incial del juego.
@@ -62,10 +74,8 @@ beginning cards = GameState RedPlayer (take 5 cards) initTable
 
 -- Recibe un estado del juego.
 -- Retorna el proximo jugador en mover.
--- activePlayer :: OnitamaGame -> Maybe OnitamaPlayer
--- activePlayer (GameState player cards table)
---    | endedGame table = Nothing
---    | otherwise = Just (otherPlayer player)
+activePlayer :: OnitamaGame -> Maybe OnitamaPlayer
+activePlayer g = listToMaybe [p | (p, as) <- actions g, not (null as)]
 
 -- Recibe un jugador.
 -- Retorna el otro jugador.
@@ -133,15 +143,15 @@ blueMove (c1,c2) (m1,m2) = (c1-m2, c2-m1)
 
 -- Recibe una pieza.
 -- Retorna su dueño.
-owner :: OnitamaPiece -> OnitamaPlayer
-owner (Master player) = player
-owner (Apprentice player) = player
-owner piece = NoPlayer
+isOwnerOf :: OnitamaPlayer -> OnitamaPiece -> Bool
+isOwnerOf _ NoPiece = False
+isOwnerOf player (Master playerPiece) = player == playerPiece
+isOwnerOf player (Apprentice playerPiece) = player == playerPiece
 
 -- Recibe un jugador, un par de coordenadas y un tablero.
 -- Retorna si la pieza en esas coordenadas es enemiga.
 isEnemyPiece :: OnitamaPlayer -> Coordinate -> OnitamaTable -> Bool
-isEnemyPiece player (x,y) table = owner (table !! y !! x) == otherPlayer player
+isEnemyPiece player (x,y) table = isOwnerOf (otherPlayer player) (table !! y !! x)
 
 -- Recibe un jugador (dueño de la accion), una carta, una pieza sobre la que se ejecutara la accion,
 -- las coordenadas de dicha pieza y el tablero.
@@ -158,7 +168,7 @@ allPossibleResults player card piece table coor =
 toActions :: OnitamaPlayer -> [OnitamaCard] -> OnitamaPiece -> OnitamaTable -> Coordinate -> [OnitamaAction]
 toActions _ _ NoPiece _ _ = []
 toActions player cards piece table coor
-    | player == (owner piece) =  (concat [allPossibleResults player card piece table coor | card <- cards])
+    | isOwnerOf player piece =  (concat [allPossibleResults player card piece table coor | card <- cards])
     | otherwise = []
 
 
@@ -190,8 +200,8 @@ isMaster _ = False
 -- Retorna si se ha terminado el juego.
 endedGame :: OnitamaTable -> Bool
 endedGame table
-    | owner (pieceAt (0,2) table) == BluePlayer = True
-    | owner (pieceAt (4,2) table) == RedPlayer = True
+    | isOwnerOf BluePlayer (pieceAt (0,2) table) && isMaster (pieceAt (0,2) table) = True
+    | isOwnerOf RedPlayer (pieceAt (4,2) table) && isMaster (pieceAt (0,2) table) = True
     | length [(table !! y !! x) | x<-[0..4], y<-[0..4], isMaster (table !! y !! x)] /= 2 = True
     | otherwise = False
 
@@ -241,15 +251,15 @@ handOf [c1,c2,c3,c4,c5] BluePlayer = [c3,c4]
 -- Que sea el turno del jugador.
 -- Que la pieza a mover esta en el lugar indicado en el tablero.
 -- Que el dueño de la pieza sea el jugador a mover.
--- Que el dstino del movimiento este vacio o ocupado por el enemigo.
+-- Que el dstino del movimiento no este ocupado por una pieza propia.
 -- Que el jugador posea la carta de la accion.
 -- Que el juego no ha terminado.
 next :: OnitamaGame -> OnitamaPlayer -> OnitamaAction -> OnitamaGame
 next (GameState player cards table ) playerMover (Action pieceToMove cardToMove from to)
     | (player /= playerMover) = error "No es el turno del jugador."
     | ((pieceAt from table) /= pieceToMove) = error "Pieza incorrecta en el tablero."
-    | (owner pieceToMove) /= playerMover = error "Esa pieza no es tuya."
-    | (not (isEmpty to table || owner (pieceAt to table) == otherPlayer player)) = error "Destino ocupado."
+    | (not (isOwnerOf playerMover pieceToMove)) = error "Esa pieza no es tuya."
+    | (isOwnerOf (player) (pieceAt to table)) = error "Destino ocupado."
     | endedGame table = error ("El juego ha terminado.")
     | (not (isACardIn (handOf cards player) cardToMove)) = error "El jugador no posee esa carta."
     | otherwise = (GameState (otherPlayer player) (nextCards cards cardToMove) (doAction table (Action pieceToMove cardToMove from to)))

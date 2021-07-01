@@ -30,16 +30,7 @@ Funciones de marca sin ninguna implementación útil. Reemplazar por el código 
 a los módulos necesarios.
 -}
 
-import Juego
-
-players :: [OnitamaPlayer]
-players = [minBound..maxBound]
-
-deck :: [OnitamaCard]
-deck = [Tiger .. Cobra]
-
-activePlayer :: OnitamaGame -> Maybe OnitamaPlayer
-activePlayer g = listToMaybe [p | (p, as) <- actions g, not (null as)]
+import GameFunctions
 
 {-- Match controller -------------------------------------------------------------------------------
 
@@ -59,8 +50,8 @@ runMatch ags@(ag1, ag2) g = do
       Just p -> do
          let ag = [ag1, ag2] !! (fromJust (elemIndex p players))
          move <- ag g
-         -- Cambio aqui de: Onitama.next a Juego.next
-         runMatch ags (Juego.next g p (fromJust move))
+         -- Onitama.next
+         runMatch ags (GameFunctions.next g p (fromJust move))
 
 shuffle :: [a] -> IO [a]
 shuffle vs = do
@@ -84,7 +75,7 @@ consoleAgent player state = do
       getLine
       return Nothing
    else do
-      putStrLn ("Select one move:" ++ concat [" "++ show m | m <- moves])
+      putStrLn ("Select one move:" ++ concat [" "++ showAction m | m <- moves])
       line <- getLine
       let input = readAction line
       if elem input moves then return (Just input) else do 
