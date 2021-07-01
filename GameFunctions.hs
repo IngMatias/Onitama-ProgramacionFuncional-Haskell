@@ -3,11 +3,19 @@ module GameFunctions where
 
 import Data.Maybe
 
+config :: OnitamaConfig
+config = OnitamaConfig deck 3 True
+
 -- Almacena la informacion del estado del juego en cualquier momento.
 -- El jugador es el siguiente en mover.
 -- Las dos primeras cartas corresponden al jugador rojo, 
 -- las dos siguientes al jugador azul, la ultima es la carta en espera.
-data OnitamaGame = GameState OnitamaPlayer [OnitamaCard] OnitamaTable
+data OnitamaGame = GameState OnitamaPlayer [OnitamaCard] OnitamaTable OnitamaConfig
+    deriving (Eq, Show)
+
+--configStalemate en True indica que el jugador sin movimientos pierde.
+--configStalemate en False indica que el jugador sin movimientos pasa.
+data OnitamaConfig = OnitamaConfig { configDeck :: [OnitamaCard], configHandSize :: Int, configStalemate :: Bool } 
     deriving (Eq, Show)
 
 -- Tablero.
@@ -30,12 +38,13 @@ type Movement = (Int,Int)
 -- Almacena un posible movimiento del jugador.
 -- El primer par de coordenadas indica donde esta posicionada la pieza.
 -- El segundo par de coordenadas indica donde estara posicionada la pieza al final del movimiento.
-data OnitamaAction = Action OnitamaPiece OnitamaCard Coordinate Coordinate
-    deriving (Eq, Show, Read)
+-- La NoMovementAction no se usa en este modulo, sino en la variante.
+data OnitamaAction = Action OnitamaPiece OnitamaCard Coordinate Coordinate | NoMovementAction
+    deriving (Eq, Show, Read, Ord)
 
 -- Piezas posibles para jugar.
 data OnitamaPiece = Master OnitamaPlayer | Apprentice OnitamaPlayer | NoPiece
-    deriving (Eq, Show, Read)
+    deriving (Eq, Show, Read, Ord)
 
 -- Posibles cartas para jugar.
 data OnitamaCard = 
@@ -43,11 +52,11 @@ data OnitamaCard =
                 Crab    | Elephant  | Goose | Rooster   |
                 Monkey  | Mantis    | Horse | Ox        |
                 Crane   | Boar      | Eel   | Cobra     
-    deriving (Eq, Show, Enum, Read)
+    deriving (Eq, Show, Enum, Read, Ord)
 
 -- Jugadores (Prof).
 data OnitamaPlayer = RedPlayer | BluePlayer 
-    deriving (Eq, Show, Enum, Read, Bounded)
+    deriving (Eq, Show, Enum, Read, Bounded, Ord)
 
 -- Posibles resultados de la partida (Prof).
 data GameResult p = Winner p | Loser p | Draw
@@ -64,7 +73,7 @@ players = [minBound..maxBound]
 -- Recibe las cartas ya barajadas.
 -- Retorna el estado incial del juego.
 beginning :: [OnitamaCard] -> OnitamaGame
-beginning cards = GameState RedPlayer (take 5 cards) initTable
+beginning cards = GameState RedPlayer (take (1+2*(configHandSize config)) cards) initTable config
     where initTable = [
             [Apprentice RedPlayer,    NoPiece,    NoPiece,    NoPiece,    Apprentice BluePlayer],
             [Apprentice RedPlayer,    NoPiece,    NoPiece,    NoPiece,    Apprentice BluePlayer],
@@ -86,9 +95,8 @@ otherPlayer (BluePlayer) = RedPlayer
 -- Recibe un jugador y una lista de cartas.
 -- Retorna las cartas del jugador.
 playerCards :: OnitamaPlayer -> [OnitamaCard] -> [OnitamaCard]
-playerCards RedPlayer [c1,c2,c3,c4,c5] = [c1,c2]
-playerCards BluePlayer [c1,c2,c3,c4,c5] =  [c3,c4]
-playerCards _ cards = error ("Se esperaban 5 cartas " ++ show cards)
+playerCards RedPlayer cards = take (div (length cards) 2) cards
+playerCards BluePlayer cards =  init (drop (div (length cards) 2) cards) 
 
 -- Recibe una carta.
 -- Retorna todos sus posibles movimientos.
@@ -171,19 +179,20 @@ toActions player cards piece table coor
     | isOwnerOf player piece =  (concat [allPossibleResults player card piece table coor | card <- cards])
     | otherwise = []
 
-
 -- Toma un estado del juego.
 -- Retorna todos los posibles resultados de la aplicacion de todas las cartas sobre todo el tablero.
 possibleActions :: OnitamaGame -> [OnitamaAction]
-possibleActions (GameState player cards table) = concat [(toActions player cards (table !! y !! x) table (x,y)) | y<-[0..4] , x<-[0..4] ]
+possibleActions (GameState player cards table _) = concat [(toActions player cards (table !! y !! x) table (x,y)) | y<-[0..4] , x<-[0..4] ]
 
 -- Toma un estado del juego.
 -- Retorna una lista de tuplas (player, posibles jugadas)
 -- Si no es el turno del jugador retorna la lista vacia.
+-- Si no tiene acciones se retorna la lista con NoMovementAction
 actions :: OnitamaGame -> [(OnitamaPlayer, [OnitamaAction])]
-actions (GameState player cards table) 
+actions (GameState player cards table config)
     | endedGame table = []
-    | otherwise = [(player , possibleActions (GameState player (playerCards player cards) table)) , (otherPlayer player, [])]
+    | otherwise = [(player , if (null actionsP && not (configStalemate config)) then [NoMovementAction] else actionsP) , (otherPlayer player, [])]
+    where actionsP = possibleActions (GameState player (playerCards player cards) table config)
 
 -- Recibe un par de coordenadas y un tablero.
 -- Retorna la pieza en ese par de coordenadas, incluso cuando no hay ninguna.  
@@ -208,12 +217,7 @@ endedGame table
 -- Recibe las cinco cartas en juego y una que ha sido utilizada.
 -- Retorna el mazo luego del uso de la carta.
 nextCards :: [OnitamaCard] -> OnitamaCard -> [OnitamaCard]
-nextCards [c1,c2,c3,c4,c5] c
-    | c1 == c = [c5,c2,c3,c4,c1]
-    | c2 == c = [c1,c5,c3,c4,c2]
-    | c3 == c = [c1,c2,c5,c4,c3]
-    | c4 == c = [c1,c2,c3,c5,c4]
-    | c5 == c = error "Esa carta no puede ser"
+nextCards cards c = [if (card/=c) then card else (last cards) | card <- init cards] ++ [c]
 
 -- Recibe una fila del tablero, una pieza y un entero posicion.
 -- Retorna la fila tras colocar una pieza nueva en la posicion dada, se piza la piesa anterior.
@@ -228,22 +232,16 @@ replace :: Coordinate -> OnitamaTable -> OnitamaPiece -> OnitamaTable
 replace (x,y) table newPiece = 
     [if (y==yAux) then (replaceRow (table !! y) newPiece x) else (table!!yAux) | yAux <- [0..4]]
 
--- Recibe el tablero y una accion.
+-- Recibe el tablero y dos pares de coordenadas.
 -- Retorna el tablero resultado tras la aplicacion de la accion.
-doAction :: OnitamaTable -> OnitamaAction -> OnitamaTable
-doAction table (Action pieceToMove cardToMove (fx,fy) (tx,ty)) =
+doAction :: OnitamaTable -> Coordinate -> Coordinate -> OnitamaTable
+doAction table (fx,fy) (tx,ty) =
     replace (fx,fy) (replace (tx,ty) table (table !! fy !! fx)) NoPiece
 
 -- Recibe una dupla de cartas y una tercer carta.
 -- Retorna si la tercer carta es alguna de la dupla.
 isACardIn :: [OnitamaCard] -> OnitamaCard -> Bool
-isACardIn [c1,c2] c = c==c1 || c ==c2
-
--- Recibe las cartas, un jugador.
--- Retorna sus cartas.
-handOf :: [OnitamaCard] -> OnitamaPlayer -> [OnitamaCard]
-handOf [c1,c2,c3,c4,c5] RedPlayer = [c1,c2]
-handOf [c1,c2,c3,c4,c5] BluePlayer = [c3,c4]
+isACardIn cards c = any (c==) cards
 
 -- Recibe un estado del juego, un jugador y una accion.
 -- Retorna el estado del juego tras la aplicacion de la accion.
@@ -254,32 +252,61 @@ handOf [c1,c2,c3,c4,c5] BluePlayer = [c3,c4]
 -- Que el dstino del movimiento no este ocupado por una pieza propia.
 -- Que el jugador posea la carta de la accion.
 -- Que el juego no ha terminado.
-next :: OnitamaGame -> OnitamaPlayer -> OnitamaAction -> OnitamaGame
-next (GameState player cards table ) playerMover (Action pieceToMove cardToMove from to)
+nextAux :: OnitamaGame -> OnitamaPlayer -> OnitamaAction -> OnitamaGame
+nextAux (GameState player cards table config) playerMover (Action pieceToMove cardToMove from to)
     | (player /= playerMover) = error "No es el turno del jugador."
     | ((pieceAt from table) /= pieceToMove) = error "Pieza incorrecta en el tablero."
     | (not (isOwnerOf playerMover pieceToMove)) = error "Esa pieza no es tuya."
     | (isOwnerOf (player) (pieceAt to table)) = error "Destino ocupado."
     | endedGame table = error ("El juego ha terminado.")
-    | (not (isACardIn (handOf cards player) cardToMove)) = error "El jugador no posee esa carta."
-    | otherwise = (GameState (otherPlayer player) (nextCards cards cardToMove) (doAction table (Action pieceToMove cardToMove from to)))
+    | (not (isACardIn (playerCards player cards) cardToMove)) = error "El jugador no posee esa carta."
+    | otherwise = (GameState (otherPlayer player) (nextCards cards cardToMove) (doAction table from to) config)
+
+-- Si se recibe la NoMovementAcrion solo se actualiza la lista de cartas
+-- En caso contrario, se usa el next "tipico" llamado nextAux
+next :: OnitamaGame -> OnitamaPlayer -> OnitamaAction -> OnitamaGame
+next (GameState player cards table config) playerMover NoMovementAction
+    | (player /= playerMover) = error "No es el turno del jugador."
+    | otherwise = (GameState (otherPlayer player) (nextCards cards cardToMove) table config)
+    where cardToMove = if (player==RedPlayer) then (head cards) else (cards !! (div (length cards - 1) 2))
+next game player action = GameFunctions.nextAux game player action
 
 -- Recibe el estado del juego.
 -- Retorna el resultado del juego para cada jugador.
 -- Si el juego no está terminado, se debe retornar una lista vacía.
 result :: OnitamaGame -> [GameResult OnitamaPlayer]
-result (GameState player _ table)
+result (GameState player _ table _)
     | not (endedGame table) = []
     | otherwise = [Loser player, Winner (otherPlayer player)]
+
+showPiece :: OnitamaPiece -> String
+showPiece (NoPiece) = "x"
+showPiece (Master RedPlayer) = "R"
+showPiece (Apprentice RedPlayer) = "r"
+showPiece (Master BluePlayer) = "B"
+showPiece (Apprentice BluePlayer) = "b"
+
+showTable :: OnitamaTable -> String
+showTable table = concat [if (x==4) then (showPiece (table !! y !! x) ++ "\n") else (showPiece (table !! y !! x) ++ " ") | y<-[0..4], x<-[0..4]]
+
+showCards :: [OnitamaCard] -> String
+showCards [] = ""
+showCards (x:xs) = (show x) ++ " " ++ showCards(xs) 
 
 -- Recibe el estado del juego.
 -- Retorna un texto representativo que puede ser impreso en la consola.
 showGame :: OnitamaGame -> String
-showGame (GameState player card table) = show player ++"\n"++ show card ++"\n"++ show table
+showGame (GameState player cards table _) = ['-' | x<-[0..40]] ++ "\n" ++ 
+    "Proximo en jugar:      " ++ show player ++ "\n" ++ 
+    "Cartas Rojas:          " ++ showCards (playerCards RedPlayer cards) ++ "\n" ++ 
+    "Cartas Azules:         " ++ showCards (playerCards BluePlayer cards) ++ "\n" ++ 
+    "Carta Fuera:           " ++ show (last cards) ++ "\n" ++ "\n" ++ 
+    showTable table ++ "\n" ++
+    ['-' | x<-[0..40]] ++ "\n" 
 
 -- Convierte una acción a un texto que puede ser impreso en la consola para mostrarla.
 showAction :: OnitamaAction -> String
-showAction (Action piece card cor1 cor2) = show piece ++"\n"++ show card ++"\n"++ show cor1 ++"\n"++ show cor2
+showAction (Action piece card cor1 cor2) = "\n" ++ show (Action piece card cor1 cor2)
 
 -- Obtiene una acción a partir de un texto que puede haber sido introducido por el usuario en la consola.
 readAction :: String -> OnitamaAction
