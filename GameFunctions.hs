@@ -36,7 +36,7 @@ data OnitamaAction = Action OnitamaPiece OnitamaCard Coordinate Coordinate | NoM
 
 -- Piezas posibles para jugar.
 data OnitamaPiece = Master OnitamaPlayer | Apprentice OnitamaPlayer | NoPiece
-    deriving (Eq, Read)
+    deriving (Eq, Show, Read)
 
 -- Posibles cartas para jugar.
 data OnitamaCard = 
@@ -246,7 +246,6 @@ isACardIn cards c = any (c==) cards
 -- Que el jugador posea la carta de la accion.
 -- Que el juego no ha terminado.
 next :: OnitamaGame -> OnitamaPlayer -> OnitamaAction -> OnitamaGame
-
 next (GameState player cards table ) playerMover (Action pieceToMove cardToMove from to)
     | (player /= playerMover) = error "No es el turno del jugador."
     | ((pieceAt from table) /= pieceToMove) = error "Pieza incorrecta en el tablero."
@@ -264,15 +263,15 @@ result (GameState player _ table)
     | not (endedGame table) = []
     | otherwise = [Loser player, Winner (otherPlayer player)]
 
-instance Show (OnitamaPiece) where
-    show (NoPiece) = "x"
-    show (Master RedPlayer) = "R"
-    show (Apprentice RedPlayer) = "r"
-    show (Master BluePlayer) = "B"
-    show (Apprentice BluePlayer) = "b"
+showPiece :: OnitamaPiece -> String
+showPiece (NoPiece) = "x"
+showPiece (Master RedPlayer) = "R"
+showPiece (Apprentice RedPlayer) = "r"
+showPiece (Master BluePlayer) = "B"
+showPiece (Apprentice BluePlayer) = "b"
 
 showTable :: OnitamaTable -> String
-showTable table = concat [if (x==4) then (show (table !! y !! x) ++ "\n") else (show (table !! y !! x) ++ " ") | y<-[0..4], x<-[0..4]]
+showTable table = concat [if (x==4) then (showPiece (table !! y !! x) ++ "\n") else (showPiece (table !! y !! x) ++ " ") | y<-[0..4], x<-[0..4]]
 
 showCards :: [OnitamaCard] -> String
 showCards [] = ""
@@ -286,11 +285,13 @@ showGame (GameState player cards table) = ['-' | x<-[0..40]] ++ "\n" ++
     "Cartas Rojas:          " ++ showCards (playerCards RedPlayer cards) ++ "\n" ++ 
     "Cartas Azules:         " ++ showCards (playerCards BluePlayer cards) ++ "\n" ++ 
     "Carta Fuera:           " ++ show (last cards) ++ "\n" ++ "\n" ++ 
-    showTable table ++ "\n"
+    showTable table ++ "\n" ++
+    ['-' | x<-[0..40]] ++ "\n" 
 
 -- Convierte una acción a un texto que puede ser impreso en la consola para mostrarla.
 showAction :: OnitamaAction -> String
-showAction (Action piece card cor1 cor2) = "\n" ++ show piece ++ " " ++ show card ++ " " ++ show cor1 ++" "++ show cor2 ++ "\n"
+showAction (Action piece card cor1 cor2) = "\n" ++ show (Action piece card cor1 cor2)
+    --show piece ++ " " ++ show card ++ " " ++ show cor1 ++" "++ show cor2
 
 -- Obtiene una acción a partir de un texto que puede haber sido introducido por el usuario en la consola.
 readAction :: String -> OnitamaAction

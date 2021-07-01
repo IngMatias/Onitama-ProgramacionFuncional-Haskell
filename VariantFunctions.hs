@@ -7,13 +7,16 @@ import Data.Maybe (fromJust, listToMaybe)
 import Data.List (elemIndex, sort)
 import System.Random
 
+variant :: OnitamaConfig -> OnitamaGame
+variant config = beginningVariant config (configDeck config)
+
+config :: OnitamaConfig
+config = OnitamaConfig deck 7 False
+
 --configStalemate en True indica que el jugador sin movimientos pierde.
 --configStalemate en False indica que el jugador sin movimientos pasa.
 data OnitamaConfig = OnitamaConfig { configDeck :: [OnitamaCard], configHandSize :: Int, configStalemate :: Bool } 
     deriving (Eq, Show)
-
-variant :: OnitamaConfig -> OnitamaGame
-variant config = beginningVariant config (configDeck config)
 
 beginningVariant :: OnitamaConfig -> [OnitamaCard] -> OnitamaGame
 beginningVariant config cards = GameState RedPlayer (take (1+2*(configHandSize config)) cards) initTable
@@ -38,14 +41,11 @@ nextVariant (GameState player cards table ) playerMover NoMovementAction
 nextVariant game player action = GameFunctions.next game player action
 
 
-config :: OnitamaConfig
-config = OnitamaConfig deck 4 False
 
 
 -- Se usa el codigo entregado para escribir funciones de juego con variante
-{- La función ´runMatch´ corre la partida completa a partir del estado de juego dado, usando los dos 
-agentes dados. Retorna una tupla con los puntajes (score) finales del juego.
--}
+-- La función ´runVariantMatch´ corre la partida completa a partir del estado de juego dado, usando los dos 
+-- agentes dados. Retorna una tupla con los puntajes (score) finales del juego.
 runVariantMatch :: (OnitamaAgent, OnitamaAgent) -> OnitamaGame -> IO [GameResult OnitamaPlayer]
 runVariantMatch ags@(ag1, ag2) g = do
    putStrLn (showGame g)
@@ -55,7 +55,7 @@ runVariantMatch ags@(ag1, ag2) g = do
          let ag = [ag1, ag2] !! (fromJust (elemIndex p players))
          move <- ag g
          -- Llamo a nextVariant
-         runMatch ags (VariantFunctions.nextVariant g p (fromJust move))
+         runVariantMatch ags (VariantFunctions.nextVariant g p (fromJust move))
 
 runVariantGame :: (OnitamaAgent, OnitamaAgent) -> IO [GameResult OnitamaPlayer]
 runVariantGame ags = do
@@ -63,13 +63,11 @@ runVariantGame ags = do
   -- Llamo a beginningVariant
   runVariantMatch ags (beginningVariant config cards)
 
-{- El agente de consola ´consoleAgent´ muestra el estado de juego y los movimientos disponibles por
-consola, y espera una acción por entrada de texto.
--}
-{-
-consoleAgent :: OnitamaPlayer -> OnitamaAgent
-consoleAgent player state = do
-   let moves = fromJust (lookup player (actions state))
+-- El agente de consola ´consoleVariantAgent´ muestra el estado de juego y los movimientos disponibles por
+-- consola, y espera una acción por entrada de texto.
+consoleVariantAgent :: OnitamaPlayer -> OnitamaAgent
+consoleVariantAgent player state = do
+   let moves = fromJust (lookup player (actionsVariant state config))
    if null moves then do
       putStrLn "No moves!"
       getLine
@@ -80,22 +78,18 @@ consoleAgent player state = do
       let input = readAction line
       if elem input moves then return (Just input) else do 
          putStrLn "Invalid move!"
-         consoleAgent player state
--}
+         consoleVariantAgent player state
 
-{- Las funciones ´runConsoleGame´ y `runConsoleMatch` ejecutan toda la partida 
-usando dos agentes de consola.
--}
-{-
-runConsoleGame :: IO [GameResult OnitamaPlayer]
-runConsoleGame = do
-   runGame (consoleAgent RedPlayer, consoleAgent BluePlayer)
-runConsoleMatch :: OnitamaGame -> IO [GameResult OnitamaPlayer]
-runConsoleMatch g = do
-   runMatch (consoleAgent RedPlayer, consoleAgent BluePlayer) g
--}
-{- El agente aleatorio ´randomAgent´ elige una acción de las disponibles completamente al azar.
--}
+-- Las funciones ´runConsoleGame´ y `runConsoleMatch` ejecutan toda la partida 
+-- usando dos agentes de consola.
+runConsoleVariantGame :: IO [GameResult OnitamaPlayer]
+runConsoleVariantGame = do
+   runGame (consoleVariantAgent RedPlayer, consoleVariantAgent BluePlayer)
+runConsoleVariantMatch :: OnitamaGame -> IO [GameResult OnitamaPlayer]
+runConsoleVariantMatch g = do
+   runMatch (consoleVariantAgent RedPlayer, consoleVariantAgent BluePlayer) g
+
+-- El agente aleatorio ´randomAgent´ elige una acción de las disponibles completamente al azar.
 randomVariantAgent :: OnitamaPlayer -> OnitamaAgent
 randomVariantAgent player state = do
     let moves = fromJust (lookup player (actionsVariant state config))
@@ -106,9 +100,8 @@ randomVariantAgent player state = do
        i <- randomRIO (0, (length moves) - 1)
        return (Just (moves !! i))
 
-{- Las funciones ´runRandomGame´ y `runRandomMatch` ejecutan toda la partida 
-usando dos agentes aleatorios.
--}
+-- Las funciones ´runRandomGame´ y `runRandomMatch` ejecutan toda la partida 
+-- usando dos agentes aleatorios.
 runRandomVariantGame :: IO [GameResult OnitamaPlayer]
 runRandomVariantGame = do
    runVariantGame (randomVariantAgent RedPlayer, randomVariantAgent BluePlayer)
@@ -116,4 +109,3 @@ runRandomVariantMatch :: OnitamaGame -> IO [GameResult OnitamaPlayer]
 runRandomVariantMatch g = do
    runVariantMatch (randomVariantAgent RedPlayer, randomVariantAgent BluePlayer) g
 
--- Fin
