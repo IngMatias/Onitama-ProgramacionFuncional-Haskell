@@ -210,7 +210,7 @@ isMaster _ = False
 endedGame :: OnitamaTable -> Bool
 endedGame table
     | isOwnerOf BluePlayer (pieceAt (0,2) table) && isMaster (pieceAt (0,2) table) = True
-    | isOwnerOf RedPlayer (pieceAt (4,2) table) && isMaster (pieceAt (0,2) table) = True
+    | isOwnerOf RedPlayer (pieceAt (4,2) table) && isMaster (pieceAt (4,2) table) = True
     | length [(table !! y !! x) | x<-[0..4], y<-[0..4], isMaster (table !! y !! x)] /= 2 = True
     | otherwise = False
 

@@ -82,8 +82,8 @@ intelligentAgent player state = do
        return (Just(desition))
 
 -- Inicia un juego entre jugadores inteligentes.
-runInteligentGame :: IO [GameResult OnitamaPlayer]
-runInteligentGame = do
+runIntelligentGame :: IO [GameResult OnitamaPlayer]
+runIntelligentGame = do
    runGame (intelligentAgent RedPlayer, intelligentAgent BluePlayer)
 
 -- Inicia un juego jugador inteligente vs jugador randomico.
