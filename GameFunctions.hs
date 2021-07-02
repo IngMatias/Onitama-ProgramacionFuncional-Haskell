@@ -1,4 +1,9 @@
 
+
+-- Desarrollado por: 
+-- Equipo 3: LAUTARO DA ROSA-ALEJANDRA ETCHEVERS-EMANUEL FONSECA-MATIAS HERNANDEZ
+
+
 module GameFunctions where
 
 import Data.Maybe

@@ -1,3 +1,9 @@
+
+
+-- Desarrollado por: 
+-- Equipo 3: LAUTARO DA ROSA-ALEJANDRA ETCHEVERS-EMANUEL FONSECA-MATIAS HERNANDEZ
+
+
 module IntelligentAgent where
 
 import Onitama
