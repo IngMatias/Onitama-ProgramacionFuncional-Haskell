@@ -279,6 +279,7 @@ result (GameState player _ table _)
     | not (endedGame table) = []
     | otherwise = [Loser player, Winner (otherPlayer player)]
 
+-- Toma una pieza y la combierte en string.
 showPiece :: OnitamaPiece -> String
 showPiece (NoPiece) = "x"
 showPiece (Master RedPlayer) = "R"
@@ -286,9 +287,11 @@ showPiece (Apprentice RedPlayer) = "r"
 showPiece (Master BluePlayer) = "B"
 showPiece (Apprentice BluePlayer) = "b"
 
+-- Toma un tablero y lo combierte en string.
 showTable :: OnitamaTable -> String
 showTable table = concat [if (x==4) then (showPiece (table !! y !! x) ++ "\n") else (showPiece (table !! y !! x) ++ " ") | y<-[0..4], x<-[0..4]]
 
+-- Toma un mazo y lo combierte en string.
 showCards :: [OnitamaCard] -> String
 showCards [] = ""
 showCards (x:xs) = (show x) ++ " " ++ showCards(xs) 
